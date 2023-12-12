@@ -1,5 +1,7 @@
 """ nltk.download('puntk')
 nltk.download('stopwords') """
+import pandas as pd
+from tabulate import tabulate
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
@@ -7,7 +9,6 @@ from natsort import natsorted
 import os 
 import nltk
 import math
-import pandas as pd
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -78,15 +79,10 @@ for document in document_of_terms:
             positional_index[term] = [1, {document_id: [position]}]
 
     document_id += 1
-
-# Calculate the number of documents each term appears in
 num_documents_per_term = {term: len(info[1]) for term, info in positional_index.items()}
-
-# Sort the positional index alphabetically
 sorted_posIndex = dict(sorted(positional_index.items()))
 print()
-# Print the positional index in a readable format
-print("         (((((((((((((((((((((((((((((   POSITIONAL INDEX    (((((((((((((((((((((((((((((     ")
+print("POSITIONAL INDEX :")
 for term, info in sorted_posIndex.items():
     num_documents = num_documents_per_term[term]
     document_positions = info[1]
@@ -96,11 +92,9 @@ for term, info in sorted_posIndex.items():
     print("  Document Positions:")
     for doc_id, positions in document_positions.items():
         print(f"    Document {doc_id}: {positions}")
-
     print()
     
-    
-""" 
+
 #2.5# phrase query
 def phrase_query(q):
     outer_array = [[] for i in range(10)]
@@ -175,25 +169,20 @@ for doc in document_of_terms:
     for word in doc:
         all_terms.append(word)
 def term_frequency(doc):
-    #put each term in dictionary form with value 0
-    word_count = dict.fromkeys(all_terms, 0) 
+    word_count = dict.fromkeys(all_terms, 0)
     for word in doc:
-        #increment the value of each term in dictionary
         word_count[word] += 1
-        # return dictionary of each document
     return word_count
-# convert dictionay form into columns form
-tf = pd.DataFrame(term_frequency(document_of_terms[0]).values(), index = term_frequency(document_of_terms[0]). keys())
+tf = pd.DataFrame(term_frequency(document_of_terms[0]).values(), index=term_frequency(document_of_terms[0]).keys())
 for i in range(1, len(document_of_terms)):
     tf[i] = term_frequency(document_of_terms[i]).values()
-#change name of column
-tf.columns = ['doc' + str(i) for i in range(1, 11)] 
+tf.columns = ['doc' + str(i) for i in range(1, 11)]
 sorted_tf = tf.sort_index()
-print("TERM FREQUENCY IS:")
-print(sorted_tf)
+# Display term frequency table using 'fancy_grid' format
+print("TERM FREQUENCY TABLE:")
+print(tabulate(sorted_tf, headers='keys', tablefmt='fancy_grid'))
 print()
-print()
-
+  
 #w_tf weighted term frequency 1 + log10(tf)
 def w_tf(x):
     if x > 0:
@@ -202,84 +191,79 @@ def w_tf(x):
         return 0
 wt_tf = tf.copy()
 for i in range(1, len(document_of_terms) + 1):
-    #replace each raw with w_tf
-    wt_tf['doc'+ str(i)] =  wt_tf['doc'+str(i)].apply(w_tf) 
+    wt_tf['doc'+ str(i)] = wt_tf['doc'+str(i)].apply(w_tf)
 sorted_wt_tf = wt_tf.sort_index()
-print("WT_TF IS:")
-print(sorted_wt_tf)
-print()
+print("WT_TF TABLE:")
+print(tabulate(sorted_wt_tf, headers='keys', tablefmt='fancy_grid'))
 print()
 
 #2.3# IDF
-df_and_IDF = pd.DataFrame(columns=('d_f','idf'))
+df_and_IDF = pd.DataFrame(columns=('d_f', 'idf'))
 for i in range(len(tf)):
     doc_freq = tf.iloc[i].values.sum()
     df_and_IDF.loc[i, 'd_f'] = doc_freq
-    df_and_IDF.loc[i, 'idf'] = math.log10(10/float(doc_freq))
+    df_and_IDF.loc[i, 'idf'] = math.log10(10 / float(doc_freq))
 df_and_IDF.index = tf.index
 sorted_df_and_IDF = df_and_IDF.sort_index()
-print("DF AND IDF IS :")
-print(sorted_df_and_IDF)
-print()
+print("DF AND IDF TABLE:")
+print(tabulate(sorted_df_and_IDF, headers='keys', tablefmt='grid'))
 print()
 
 # TF-IDF
-tf_idf = tf.multiply(df_and_IDF['idf'], axis = 0)
+import numpy as np
+tf_idf = tf.multiply(df_and_IDF['idf'], axis=0)
 sorted_tf_idf = tf_idf.sort_index()
-print("TF_IDF IS :")
-print(sorted_tf_idf)
-print()
+print("TF_IDF TABLE:")
+print(tabulate(sorted_tf_idf, headers='keys', tablefmt='fancy_grid'))
 print()
 
 #doc_length
-import numpy as np
 doc_length = pd.DataFrame()
 def document_length(col):
     return np.sqrt(tf_idf[col].apply(lambda x: x**2).sum())
 for column in tf_idf.columns:
     doc_length.loc[0, column + '_len'] = document_length(column)
-print("DOCUMENT LENGTH IS :")
-print(doc_length)
-print()
+print("DOCUMENT LENGTH TABLE:")
+print(tabulate(doc_length, headers='keys', tablefmt='grid', showindex=False))
 print()
 
 #NORMALIZATION TF-IDF divided by DOC_LENGTH
 normalize = pd.DataFrame()
 def get_normalize(col, x):
     try:
-        return x / doc_length[column + '_len'].values[0]
+        return x / doc_length[col + '_len'].values[0]
     except:
         return 0
 for column in tf_idf.columns:
     normalize[column] = tf_idf[column].apply(lambda x: get_normalize(column, x))
-print("NORMALIZTION")
-sorted_normalize = normalize.sort_index()
-print(sorted_normalize)
-print()
+print("NORMALIZATION TABLE:")
+print(tabulate(normalize, headers='keys', tablefmt='fancy_grid'))
 print()
 
       
 ##########################################QUERY####################################
-q = 'antony brutus AND mercy worser'
 def wtf(x):
     if x > 0:
         return 1 + math.log10(x)
     else:
         return 0
-def insert_query(q):
+
+def wtf(x):
+    if x > 0:
+        return 1 + math.log10(x)
+    else:
+        return 0
+
+def insert_query():
+    q = input("Enter the query: ")
+    
     if 'AND' in q or 'OR' in q or 'NOT' in q:
         document_found = process_boolean_query(q)
-        print(document_found)
-        if document_found == []:
+        if not document_found:
             print("Not found")
             return 0
         query = pd.DataFrame(index=normalize.index)
-        x = []
-        for word in q.split():
-            if word == 'AND' or word == 'OR' or word == 'NOT':
-                continue
-            else:
-                x.append(ps.stem(word))
+        x = [ps.stem(word) for word in q.split() if word not in ['AND', 'OR', 'NOT']]
         query['tf'] = [x.count(term) if term in x else 0 for term in list(normalize.index)]
         query['w_tf'] = query['tf'].apply(lambda x: wtf(x))
         query['idf'] = df_and_IDF['idf'] * query['w_tf']
@@ -292,29 +276,28 @@ def insert_query(q):
         product = normalize.multiply(query['w_tf'], axis=0)
         product2 = product.multiply(query['normalized'], axis=0)
 
-        print("Query Details")
-        print(query)
+        print("Query Details:")
+        print(tabulate(query.reset_index(), headers='keys', tablefmt='fancy_grid', showindex=False))
+        print()
 
         scores = {}
-        print(document_found)
-        print(product2)
         for col in document_found:
-            # Sum of column1 that was normalize of doc1 * normalize of query
             scores[col] = product2[col].sum()
-            
-    
-        # Result of product normalize of document * normalize of query
-        result = product2[list(scores.keys())].loc[x]
+
+        result = product2[list(scores.keys())]
+        print('Product (query*matched doc):')
+        print(tabulate(result.reset_index(), headers='keys', tablefmt='fancy_grid', showindex=False))
         print()
-        print('Product (query*matched doc)')
-        print(result)
-        print()
-        print("PRODUCT SUM")
+        print("PRODUCT SUM:")
         print(result.sum())
         print()
         final_scored = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         print("COSINE SIMILARITY of each document IS:")
-        print(final_scored)
+        print(tabulate(final_scored, headers=['Document', 'Cosine Similarity'], tablefmt='fancy_grid', showindex=False))
+        print()
+        print('Query Length')
+        q_len = math.sqrt(sum([x**2 for x in query['idf'].loc[x]]))
+        print(q_len)
         print()
         print("Matched documents ordered with high SIMILARITY:")
         for doc in final_scored:
@@ -322,50 +305,50 @@ def insert_query(q):
         print()
     else:
         document_found = phrase_query(q)
-        if document_found == []:
+        if not document_found:
             print("Not found")
             return 0
-        query = pd.DataFrame(index = normalize.index)
-        x = []
-        for word in q.split():
-            x.append(ps.stem(word))
-        #tf of query
+        query = pd.DataFrame(index=normalize.index)
+        x = [ps.stem(word) for word in q.split()]
         query['tf'] = [x.count(term) if term in x else 0 for term in list(normalize.index)]
-        query['w_tf'] = query['tf'].apply(lambda x : int(wtf(x)))
+        query['w_tf'] = query['tf'].apply(lambda x: int(wtf(x)))
         query['idf'] = df_and_IDF['idf'] * query['w_tf']
         query['tf-idf'] = query['tf'] * query['idf']
         query['normalized'] = 0
-        product = normalize.multiply(query['w_tf'], axis = 0)
+        product = normalize.multiply(query['w_tf'], axis=0)
         for i in range(len(query)):
-            #normalizarion of each term in query
             query['normalized'].iloc[i] = float(query['idf'].iloc[i]) / math.sqrt(sum(query['idf'].values**2))
-        #normailze of each term in document * normalize of each term in query
-        product2 = product.multiply(query['normalized'], axis = 0)
-        print("Query Details")  
-        print(query)
+        product2 = product.multiply(query['normalized'], axis=0)
+
+        print("Query Details:")
+        print(tabulate(query.reset_index(), headers='keys', tablefmt='fancy_grid', showindex=False))
+        print()
+
         scores = {}
-        print(document_found)
-        print(product2)
-        #get product2 (normalize of document1*normalize of query, ormalize of document2*normalize of query)
         for col in document_found:
-            #sum of column1 that was normalize of doc1 * normalize of query
             scores[col] = product2[col].sum()
-        #result of product normalize of document * normalize of query
-        result = product2[list(scores.keys())].loc[x]
+
+        result = product2[list(scores.keys())]
+        print('Product (query*matched doc):')
+        print(tabulate(result.reset_index(), headers='keys', tablefmt='fancy_grid', showindex=False))
         print()
-        print('Product (query*matched doc)')
-        print(result)
+        print("PRODUCT SUM:")
+        product_sum_table = pd.DataFrame({'Document': list(result.columns), 'Sum': result.sum()})
+        print(tabulate(product_sum_table, headers='keys', tablefmt='fancy_grid', showindex=False))
         print()
-        print("PRODUCT SUM")
-        print(result.sum())
-        print()
-        final_scored = sorted(scores.items(), key = lambda x :x[1], reverse=True)
+        final_scored = sorted(scores.items(), key=lambda x: x[1], reverse=True)
         print("COSINE SIMILARITY of each document IS:")
-        print(final_scored)
+        print(tabulate(final_scored, headers=['Document', 'Cosine Similarity'], tablefmt='fancy_grid', showindex=False))
+        print()
+        print('Query Length')
+        q_len = math.sqrt(sum([x**2 for x in query['idf'].loc[x]]))
+        print(q_len)
         print()
         print("Matched documents ordered with high SIMILARITY:")
         for doc in final_scored:
             print(doc[0], end=' ')
         print()
-insert_query(q)
-   """
+        print()
+
+# Call the function to insert the query from the console
+insert_query()
