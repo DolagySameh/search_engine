@@ -16,6 +16,32 @@ stop_words.remove('to')
 stop_words.remove('in')
 stop_words.remove('where')
 
+#Intersection between two array
+def manual_intersection(array1, array2):
+    result = []
+
+    for element in array1:
+        if element in array2 and element not in result:
+            result.append(element)
+
+    return result
+
+#union
+def union_lists(list1, list2):
+    # Use set to perform the union operation
+    union_set = set(list1) | set(list2)
+    # Convert the result back to a list
+    union_result = list(union_set)
+    return union_result
+
+#NOT 
+def manual_difference(list1, list2):
+    # Use a set to perform the difference operation
+    difference_set = set(list1) - set(list2)
+    # Convert the result back to a list
+    difference_result = list(difference_set)
+    return difference_result
+
 #READ documents And TOKENIZATION And STEEMING
 ps = PorterStemmer()
 document_of_terms = []
@@ -54,10 +80,10 @@ for document in document_of_terms:
             positional_index[term][1][document_id] = [position]
     document_id = document_id + 1
 sorted_posIndex = dict(sorted(positional_index.items()))
-print("POSITIONAL INDEX IS :")
+""" print("POSITIONAL INDEX IS :")
 print(sorted_posIndex)
 print()
-print()
+print() """
 
 #2.5# phrase query
 def phrase_query(q):
@@ -77,24 +103,54 @@ def phrase_query(q):
             positions.append('doc'+str(position))
     return positions
 
-#boolean query
-def process_boolean_query(query, document_indices):
-    terms = query.split()
-    result = []
-
-    if 'AND' in terms:
-        # AND operation
-        index_sets = [set(document_indices[term]) for term in terms if term != 'AND']
-        result = list(set.intersection(*index_sets))
-    elif 'OR' in terms:
-        # OR operation
-        index_sets = [set(document_indices[term]) for term in terms if term != 'OR']
-        result = list(set.union(*index_sets))
-    else:
-        # Single term
-        result = document_indices.get(terms[0], [])
-
-    return [f"document {idx}" for idx in result]
+def process_boolean_query(query):
+    words = query.split()
+    before_result = []
+    before_result1 = []
+    before_not_result = []
+    
+    and_indices = [index for index, word in enumerate(words) if word == 'AND']
+    or_indices = [index for index, word in enumerate(words) if word == 'OR']
+    not_indices = [index for index, word in enumerate(words) if word == 'NOT']
+    
+    for and_index in and_indices:
+        words_after_and = ' '.join(words[and_index + 1:])
+        if before_result == []:
+            words_before_and = ' '.join(words[:and_index])
+            before_result = phrase_query(words_before_and)
+            after_results = phrase_query(words_after_and)
+            intersection_result = manual_intersection(before_result, after_results)
+        else:
+            after_results = phrase_query(words_after_and)
+            intersection_result = manual_intersection(before_result, after_results)
+        before_result = intersection_result
+    
+    for or_index in or_indices:
+        words_after_or = ' '.join(words[or_index + 1:])
+        if before_result1 == []:
+            words_before_or = ' '.join(words[:or_index])
+            before_result1 = phrase_query(words_before_or)
+            after_results1 = phrase_query(words_after_or)
+            intersection_result1 = union_lists(before_result1, after_results1)
+        else:
+            after_results1 = phrase_query(words_after_or)
+            intersection_result1 = union_lists(before_result1, after_results1)
+        before_result1 = intersection_result1
+    
+    for not_index in not_indices:
+        words_after_not = ' '.join(words[not_index + 1:])
+        if before_not_result == []:
+            words_before_not = ' '.join(words[:not_index])
+            before_not_result = phrase_query(words_before_not)
+            after_not_results = phrase_query(words_after_not)
+            intersection_not_result = manual_difference(before_not_result, after_not_results)
+        else:
+            after_not_results = phrase_query(words_after_not)
+            intersection_not_result = manual_difference(before_not_result, after_not_results)
+        before_not_result = intersection_not_result
+    
+    final_result = union_lists(before_result1, before_not_result)
+    return final_result
 
 #tf
 all_terms = []
@@ -191,7 +247,7 @@ def wtf(x):
         return 1 + math.log10(x)
     else:
         return 0
-def insert_query(q):
+""" def insert_query(q):
     document_found = phrase_query(q)
     if document_found == []:
         print("Not found")
@@ -239,6 +295,5 @@ def insert_query(q):
         print(doc[0], end=' ')
     print()
 
-insert_query(q)
-
-
+insert_query(q) """
+print(process_boolean_query("fools fear NOT in rush"))
