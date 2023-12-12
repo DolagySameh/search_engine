@@ -65,26 +65,42 @@ for file in file_name :
 # positional index
 document_id = 1
 positional_index = {}
+
 for document in document_of_terms:
     for position, term in enumerate(document):
         if term in positional_index:
-            positional_index[term][0] = positional_index[term][0] + 1
+            positional_index[term][0] += 1
             if document_id in positional_index[term][1]:
                 positional_index[term][1][document_id].append(position)
             else:
                 positional_index[term][1][document_id] = [position]
         else:
-            positional_index[term] = []
-            positional_index[term].append(1)
-            positional_index[term].append({})
-            positional_index[term][1][document_id] = [position]
-    document_id = document_id + 1
-sorted_posIndex = dict(sorted(positional_index.items()))
-""" print("POSITIONAL INDEX IS :")
-print(sorted_posIndex)
-print()
-print() """
+            positional_index[term] = [1, {document_id: [position]}]
 
+    document_id += 1
+
+# Calculate the number of documents each term appears in
+num_documents_per_term = {term: len(info[1]) for term, info in positional_index.items()}
+
+# Sort the positional index alphabetically
+sorted_posIndex = dict(sorted(positional_index.items()))
+print()
+# Print the positional index in a readable format
+print("         (((((((((((((((((((((((((((((   POSITIONAL INDEX    (((((((((((((((((((((((((((((     ")
+for term, info in sorted_posIndex.items():
+    num_documents = num_documents_per_term[term]
+    document_positions = info[1]
+
+    print(f"{term}:")
+    print(f"  Number of Documents: {num_documents}")
+    print("  Document Positions:")
+    for doc_id, positions in document_positions.items():
+        print(f"    Document {doc_id}: {positions}")
+
+    print()
+    
+    
+""" 
 #2.5# phrase query
 def phrase_query(q):
     outer_array = [[] for i in range(10)]
@@ -241,6 +257,8 @@ sorted_normalize = normalize.sort_index()
 print(sorted_normalize)
 print()
 print()
+
+      
 ##########################################QUERY####################################
 q = 'antony brutus AND mercy worser'
 def wtf(x):
@@ -283,7 +301,8 @@ def insert_query(q):
         for col in document_found:
             # Sum of column1 that was normalize of doc1 * normalize of query
             scores[col] = product2[col].sum()
-
+            
+    
         # Result of product normalize of document * normalize of query
         result = product2[list(scores.keys())].loc[x]
         print()
@@ -349,4 +368,4 @@ def insert_query(q):
             print(doc[0], end=' ')
         print()
 insert_query(q)
-  
+   """
