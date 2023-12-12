@@ -112,45 +112,46 @@ def process_boolean_query(query):
     and_indices = [index for index, word in enumerate(words) if word == 'AND']
     or_indices = [index for index, word in enumerate(words) if word == 'OR']
     not_indices = [index for index, word in enumerate(words) if word == 'NOT']
-    
-    for and_index in and_indices:
-        words_after_and = ' '.join(words[and_index + 1:])
-        if before_result == []:
-            words_before_and = ' '.join(words[:and_index])
-            before_result = phrase_query(words_before_and)
-            after_results = phrase_query(words_after_and)
-            intersection_result = manual_intersection(before_result, after_results)
-        else:
-            after_results = phrase_query(words_after_and)
-            intersection_result = manual_intersection(before_result, after_results)
-        before_result = intersection_result
-    
-    for or_index in or_indices:
-        words_after_or = ' '.join(words[or_index + 1:])
-        if before_result1 == []:
-            words_before_or = ' '.join(words[:or_index])
-            before_result1 = phrase_query(words_before_or)
-            after_results1 = phrase_query(words_after_or)
-            intersection_result1 = union_lists(before_result1, after_results1)
-        else:
-            after_results1 = phrase_query(words_after_or)
-            intersection_result1 = union_lists(before_result1, after_results1)
-        before_result1 = intersection_result1
-    
-    for not_index in not_indices:
-        words_after_not = ' '.join(words[not_index + 1:])
-        if before_not_result == []:
-            words_before_not = ' '.join(words[:not_index])
-            before_not_result = phrase_query(words_before_not)
-            after_not_results = phrase_query(words_after_not)
-            intersection_not_result = manual_difference(before_not_result, after_not_results)
-        else:
-            after_not_results = phrase_query(words_after_not)
-            intersection_not_result = manual_difference(before_not_result, after_not_results)
-        before_not_result = intersection_not_result
-    
-    final_result = union_lists(before_result1, before_not_result)
-    return final_result
+    if and_indices:
+        for and_index in and_indices:
+            words_after_and = ' '.join(words[and_index + 1:])
+            if before_result == []:
+                words_before_and = ' '.join(words[:and_index])
+                before_result = phrase_query(words_before_and)
+                after_results = phrase_query(words_after_and)
+                intersection_result = manual_intersection(before_result, after_results)
+            else:
+                after_results = phrase_query(words_after_and)
+                intersection_result = manual_intersection(before_result, after_results)
+            before_result = intersection_result
+        return before_result
+    if or_indices:
+        for or_index in or_indices:
+            words_after_or = ' '.join(words[or_index + 1:])
+            if before_result1 == []:
+                words_before_or = ' '.join(words[:or_index])
+                before_result1 = phrase_query(words_before_or)
+                after_results1 = phrase_query(words_after_or)
+                intersection_result1 = union_lists(before_result1, after_results1)
+            else:
+                after_results1 = phrase_query(words_after_or)
+                intersection_result1 = union_lists(before_result1, after_results1)
+            before_result1 = intersection_result1
+        return before_result1
+    if not_indices:
+        for not_index in not_indices:
+            words_after_not = ' '.join(words[not_index + 1:])
+            if before_not_result == []:
+                words_before_not = ' '.join(words[:not_index])
+                before_not_result = phrase_query(words_before_not)
+                after_not_results = phrase_query(words_after_not)
+                intersection_not_result = manual_difference(before_not_result, after_not_results)
+            else:
+                after_not_results = phrase_query(words_after_not)
+                intersection_not_result = manual_difference(before_not_result, after_not_results)
+            before_not_result = intersection_not_result
+        final_result = union_lists(before_result1, before_not_result)
+        return final_result
 
 #tf
 all_terms = []
@@ -241,59 +242,111 @@ print(sorted_normalize)
 print()
 print()
 ##########################################QUERY####################################
-q = 'fools fear'
+q = 'antony brutus AND mercy worser'
 def wtf(x):
     if x > 0:
         return 1 + math.log10(x)
     else:
         return 0
-""" def insert_query(q):
-    document_found = phrase_query(q)
-    if document_found == []:
-        print("Not found")
-        return 0
-    query = pd.DataFrame(index = normalize.index)
-    x = []
-    for word in q.split():
-        x.append(ps.stem(word))
-    #tf of query
-    query['tf'] = [x.count(term) if term in x else 0 for term in list(normalize.index)]
-    query['w_tf'] = query['tf'].apply(lambda x : int(wtf(x)))
-    query['idf'] = df_and_IDF['idf'] * query['w_tf']
-    query['tf-idf'] = query['tf'] * query['idf']
-    query['normalized'] = 0
-    product = normalize.multiply(query['w_tf'], axis = 0)
-    for i in range(len(query)):
-        #normalizarion of each term in query
-        query['normalized'].iloc[i] = float(query['idf'].iloc[i]) / math.sqrt(sum(query['idf'].values**2))
-    #normailze of each term in document * normalize of each term in query
-    product2 = product.multiply(query['normalized'], axis = 0)
-    print("Query Details")  
-    print(query)
-    scores = {}
-    print(document_found)
-    print(product2)
-    #get product2 (normalize of document1*normalize of query, ormalize of document2*normalize of query)
-    for col in document_found:
-        #sum of column1 that was normalize of doc1 * normalize of query
-        scores[col] = product2[col].sum()
-    #result of product normalize of document * normalize of query
-    result = product2[list(scores.keys())].loc[x]
-    print()
-    print('Product (query*matched doc)')
-    print(result)
-    print()
-    print("PRODUCT SUM")
-    print(result.sum())
-    print()
-    final_scored = sorted(scores.items(), key = lambda x :x[1], reverse=True)
-    print("COSINE SIMILARITY of each document IS:")
-    print(final_scored)
-    print()
-    print("Matched documents ordered with high SIMILARITY:")
-    for doc in final_scored:
-        print(doc[0], end=' ')
-    print()
+def insert_query(q):
+    if 'AND' in q or 'OR' in q or 'NOT' in q:
+        document_found = process_boolean_query(q)
+        print(document_found)
+        if document_found == []:
+            print("Not found")
+            return 0
+        query = pd.DataFrame(index=normalize.index)
+        x = []
+        for word in q.split():
+            if word == 'AND' or word == 'OR' or word == 'NOT':
+                continue
+            else:
+                x.append(ps.stem(word))
+        query['tf'] = [x.count(term) if term in x else 0 for term in list(normalize.index)]
+        query['w_tf'] = query['tf'].apply(lambda x: wtf(x))
+        query['idf'] = df_and_IDF['idf'] * query['w_tf']
+        query['tf-idf'] = query['tf'] * query['idf']
+        query_norm = math.sqrt((query['tf-idf'] ** 2).sum())  # Norm of the query
 
-insert_query(q) """
-print(process_boolean_query("fools fear NOT in rush"))
+        # Normalize the query
+        query['normalized'] = query['idf'] / query_norm
+
+        product = normalize.multiply(query['w_tf'], axis=0)
+        product2 = product.multiply(query['normalized'], axis=0)
+
+        print("Query Details")
+        print(query)
+
+        scores = {}
+        print(document_found)
+        print(product2)
+        for col in document_found:
+            # Sum of column1 that was normalize of doc1 * normalize of query
+            scores[col] = product2[col].sum()
+
+        # Result of product normalize of document * normalize of query
+        result = product2[list(scores.keys())].loc[x]
+        print()
+        print('Product (query*matched doc)')
+        print(result)
+        print()
+        print("PRODUCT SUM")
+        print(result.sum())
+        print()
+        final_scored = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        print("COSINE SIMILARITY of each document IS:")
+        print(final_scored)
+        print()
+        print("Matched documents ordered with high SIMILARITY:")
+        for doc in final_scored:
+            print(doc[0], end=' ')
+        print()
+    else:
+        document_found = phrase_query(q)
+        if document_found == []:
+            print("Not found")
+            return 0
+        query = pd.DataFrame(index = normalize.index)
+        x = []
+        for word in q.split():
+            x.append(ps.stem(word))
+        #tf of query
+        query['tf'] = [x.count(term) if term in x else 0 for term in list(normalize.index)]
+        query['w_tf'] = query['tf'].apply(lambda x : int(wtf(x)))
+        query['idf'] = df_and_IDF['idf'] * query['w_tf']
+        query['tf-idf'] = query['tf'] * query['idf']
+        query['normalized'] = 0
+        product = normalize.multiply(query['w_tf'], axis = 0)
+        for i in range(len(query)):
+            #normalizarion of each term in query
+            query['normalized'].iloc[i] = float(query['idf'].iloc[i]) / math.sqrt(sum(query['idf'].values**2))
+        #normailze of each term in document * normalize of each term in query
+        product2 = product.multiply(query['normalized'], axis = 0)
+        print("Query Details")  
+        print(query)
+        scores = {}
+        print(document_found)
+        print(product2)
+        #get product2 (normalize of document1*normalize of query, ormalize of document2*normalize of query)
+        for col in document_found:
+            #sum of column1 that was normalize of doc1 * normalize of query
+            scores[col] = product2[col].sum()
+        #result of product normalize of document * normalize of query
+        result = product2[list(scores.keys())].loc[x]
+        print()
+        print('Product (query*matched doc)')
+        print(result)
+        print()
+        print("PRODUCT SUM")
+        print(result.sum())
+        print()
+        final_scored = sorted(scores.items(), key = lambda x :x[1], reverse=True)
+        print("COSINE SIMILARITY of each document IS:")
+        print(final_scored)
+        print()
+        print("Matched documents ordered with high SIMILARITY:")
+        for doc in final_scored:
+            print(doc[0], end=' ')
+        print()
+insert_query(q)
+  
