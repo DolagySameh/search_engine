@@ -66,7 +66,6 @@ for file in file_name :
 # positional index
 document_id = 1
 positional_index = {}
-
 for document in document_of_terms:
     for position, term in enumerate(document):
         if term in positional_index:
@@ -117,11 +116,11 @@ def process_boolean_query(query):
     words = query.split()
     before_result = []
     before_result1 = []
-    before_not_result = []
+    nand_result = []  # Change the variable name
     
     and_indices = [index for index, word in enumerate(words) if word == 'AND']
     or_indices = [index for index, word in enumerate(words) if word == 'OR']
-    not_indices = [index for index, word in enumerate(words) if word == 'NOT']
+    nand_indices = [index for index, word in enumerate(words) if word == 'NAND']  # Change the keyword
     if and_indices:
         for and_index in and_indices:
             words_after_and = ' '.join(words[and_index + 1:])
@@ -148,19 +147,21 @@ def process_boolean_query(query):
                 intersection_result1 = union_lists(before_result1, after_results1)
             before_result1 = intersection_result1
         return before_result1
-    if not_indices:
-        for not_index in not_indices:
-            words_after_not = ' '.join(words[not_index + 1:])
-            if before_not_result == []:
-                words_before_not = ' '.join(words[:not_index])
-                before_not_result = phrase_query(words_before_not)
-                after_not_results = phrase_query(words_after_not)
-                intersection_not_result = manual_difference(before_not_result, after_not_results)
+    if nand_indices:
+        for nand_index in nand_indices:
+            words_after_nand = ' '.join(words[nand_index + 1:])
+            if nand_result == []:
+                words_before_nand = ' '.join(words[:nand_index])
+                nand_result = phrase_query(words_before_nand)
+                after_nand_results = phrase_query(words_after_nand)
+                intersection_nand_result = manual_intersection(nand_result, after_nand_results)
             else:
-                after_not_results = phrase_query(words_after_not)
-                intersection_not_result = manual_difference(before_not_result, after_not_results)
-            before_not_result = intersection_not_result
-        final_result = union_lists(before_result1, before_not_result)
+                after_nand_results = phrase_query(words_after_nand)
+                intersection_nand_result = manual_intersection(nand_result, after_nand_results)
+            nand_result = intersection_nand_result
+        a_l = ['doc1','doc2','doc3','doc4','doc5','doc6','doc7','doc8','doc9','doc10']
+        # Now, find the documents that are not in the intersection
+        final_result = manual_difference(a_l, nand_result)
         return final_result
 
 #tf
@@ -240,14 +241,8 @@ print("NORMALIZATION TABLE:")
 print(tabulate(normalize, headers='keys', tablefmt='fancy_grid'))
 print()
 
-      
+    
 ##########################################QUERY####################################
-def wtf(x):
-    if x > 0:
-        return 1 + math.log10(x)
-    else:
-        return 0
-
 def wtf(x):
     if x > 0:
         return 1 + math.log10(x)
@@ -257,13 +252,13 @@ def wtf(x):
 def insert_query():
     q = input("Enter the query: ")
     
-    if 'AND' in q or 'OR' in q or 'NOT' in q:
+    if 'AND' in q or 'OR' in q or 'NAND' in q:
         document_found = process_boolean_query(q)
         if not document_found:
             print("Not found")
             return 0
         query = pd.DataFrame(index=normalize.index)
-        x = [ps.stem(word) for word in q.split() if word not in ['AND', 'OR', 'NOT']]
+        x = [ps.stem(word) for word in q.split() if word not in ['AND', 'OR', 'NAND']]
         query['tf'] = [x.count(term) if term in x else 0 for term in list(normalize.index)]
         query['w_tf'] = query['tf'].apply(lambda x: wtf(x))
         query['idf'] = df_and_IDF['idf'] * query['w_tf']
